@@ -15,7 +15,7 @@ public sealed class JwtAuthenticationIntegrationTests
 {
     private HttpClient CreateAuthenticatedClient(bool validateScopes = true)
     {
-        var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        var factory = new WebApplicationFactory<GatewayHostApplicationMarker>().WithWebHostBuilder(builder =>
         {
             builder.UseSetting("Auth:Enabled", "true");
             builder.UseSetting("Auth:Authority", TestJwtIssuer.Issuer);

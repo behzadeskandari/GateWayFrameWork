@@ -5,11 +5,11 @@ using Xunit;
 
 namespace Gateway.Tests.Integration;
 
-public sealed class GatewayHostIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+public sealed class GatewayHostIntegrationTests : IClassFixture<WebApplicationFactory<GatewayHostApplicationMarker>>
 {
     private readonly HttpClient _client;
 
-    public GatewayHostIntegrationTests(WebApplicationFactory<Program> factory) =>
+    public GatewayHostIntegrationTests(WebApplicationFactory<GatewayHostApplicationMarker> factory) =>
         _client = factory.WithWebHostBuilder(builder =>
         {
             builder.UseSetting("Auth:Enabled", "false");

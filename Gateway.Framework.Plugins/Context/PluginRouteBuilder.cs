@@ -15,6 +15,7 @@ public sealed class PluginRouteBuilder
         string path,
         string destinationAddress,
         string? pathRemovePrefix = null,
+        string? pathPrefix = null,
         bool requiresFinancialResilience = false)
     {
         var clusterId = $"{_bankCode.ToLowerInvariant()}-{routeSuffix}-cluster";
@@ -26,6 +27,7 @@ public sealed class PluginRouteBuilder
             ClusterId = clusterId,
             Path = path,
             PathRemovePrefix = pathRemovePrefix,
+            PathPrefix = pathPrefix,
             RequiresFinancialResilience = requiresFinancialResilience
         });
 

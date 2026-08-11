@@ -6,6 +6,7 @@ public sealed class PluginRouteDefinition
     public required string ClusterId { get; init; }
     public required string Path { get; init; }
     public string? PathRemovePrefix { get; init; }
+    public string? PathPrefix { get; init; }
     public bool RequiresFinancialResilience { get; init; }
 }
 

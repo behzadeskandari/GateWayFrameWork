@@ -27,7 +27,7 @@ public sealed class Bank2HealthCheck : IHealthCheck
 
         try
         {
-            using var response = await _client.Client.GetAsync("health", cancellationToken);
+            using var response = await _client.Client.GetAsync("health/live", cancellationToken);
             return response.IsSuccessStatusCode
                 ? HealthCheckResult.Healthy("Bank2 sample downstream is reachable.")
                 : HealthCheckResult.Degraded($"Bank2 sample downstream returned {(int)response.StatusCode}.");

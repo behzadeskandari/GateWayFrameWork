@@ -1,8 +1,27 @@
 # Plugin Development Guide
 
+## Plugin vs Bank Service
+
+When adding a new bank integration, you typically create **two** projects:
+
+| Project | Location | Purpose |
+|---|---|---|
+| Plugin | `plugins/YourBank/Gateway.Bank.YourBank/` | Gateway-side routing, health, HttpClient wiring |
+| Service | `services/YourBank.Service/` | Standalone ASP.NET Core app with bank API + business logic |
+
+The plugin's `Plugins:YourBank:BaseUrl` must point to the service URL (e.g. `http://localhost:5103/` in development, internal K8s URL in production).
+
+```
+Client → Gateway → Plugin → YourBank.Service → (future) Real Bank API
+```
+
+The plugin **never** contains business logic. The service **never** duplicates gateway JWT validation.
+
+---
+
 ## Creating a New Bank Plugin
 
-### 1. Create a project
+### 1. Create a plugin project
 
 ```
 plugins/
@@ -11,7 +30,7 @@ plugins/
       Gateway.Bank.YourBank.csproj
 ```
 
-Reference only `Gateway.Framework.Plugins` (which pulls in framework abstractions).
+Reference only `Gateway.Framework.Plugins`:
 
 ```xml
 <ProjectReference Include="..\..\..\Gateway.Framework.Plugins\Gateway.Framework.Plugins.csproj" />
@@ -38,7 +57,6 @@ public sealed class YourBankPlugin : IBankingGatewayPlugin
     {
         context.Services.Configure<YourBankOptions>(context.Configuration);
         context.AddBankPluginHttpClient<YourBankClient>("yourbank-client");
-        context.Services.AddSingleton<IYourBankService, YourBankService>();
         context.Services.AddHealthChecks()
             .AddTypeActivatedCheck<YourBankHealthCheck>(
                 "plugin-yourbank",
@@ -51,10 +69,11 @@ public sealed class YourBankPlugin : IBankingGatewayPlugin
     {
         var options = pluginConfiguration.Get<YourBankOptions>() ?? new YourBankOptions();
         routes.AddRoute(
-            routeSuffix: "accounts",
-            path: "/api/v1/banks/yourbank/accounts/{**catch-all}",
+            routeSuffix: "yourbank",
+            path: "/api/v1/banks/yourbank/{**catch-all}",
             destinationAddress: options.BaseUrl,
-            pathRemovePrefix: "/api/v1/banks/yourbank/accounts");
+            pathRemovePrefix: "/api/v1/banks/yourbank",
+            pathPrefix: "/api");
     }
 
     public Task InitializeAsync(BankingGatewayPluginContext context, CancellationToken cancellationToken = default) =>
@@ -64,6 +83,8 @@ public sealed class YourBankPlugin : IBankingGatewayPlugin
         Task.CompletedTask;
 }
 ```
+
+**Route transforms:** Gateway clients call `/api/v1/banks/yourbank/...`. The plugin strips the gateway prefix and adds `/api` so the service receives its native paths (e.g. `/api/accounts`).
 
 ### 3. Register in `Gateway.Host/Program.cs`
 
@@ -84,13 +105,78 @@ Add a project reference from `Gateway.Host` to your plugin project.
 "Plugins": {
   "YourBank": {
     "Enabled": true,
-    "BaseUrl": "https://api.yourbank.example/",
+    "BaseUrl": "http://localhost:5103/",
     "TimeoutSeconds": 30
   }
 }
 ```
 
 Production requires non-localhost `BaseUrl` for enabled plugins.
+
+---
+
+## Creating a Matching Bank Service
+
+Create an independent .NET 8 ASP.NET Core project under `services/YourBank.Service/`:
+
+```
+services/YourBank.Service/
+  Program.cs
+  Controllers/
+  Application/
+  Infrastructure/
+  Properties/launchSettings.json
+  appsettings.json
+  Dockerfile
+services/YourBank.Service.Tests/
+```
+
+Each service should include:
+
+- Its own DI, controllers, application/infrastructure layers
+- Swagger at `/swagger` (Development)
+- Health at `/health/live` and `/health/ready`
+- `CorrelationIdMiddleware` echoing `X-Correlation-Id`
+- Its own port in `launchSettings.json`
+- Unit + integration tests using `WebApplicationFactory<YourBank.Service.Program>`
+
+**Do not** add IdentityServer, token issuance, or gateway JWT validation to the service.
+
+---
+
+## Running and Testing
+
+### Start locally
+
+```bash
+# Terminal 1 — your bank service
+dotnet run --project services/YourBank.Service/YourBank.Service.csproj
+
+# Terminal 2 — gateway (after updating Plugins:YourBank:BaseUrl)
+dotnet run --project Gateway.Host/Gateway.Host.csproj
+```
+
+### Test direct service (Swagger)
+
+Open `http://localhost:{port}/swagger` and exercise service endpoints directly.
+
+### Test through gateway
+
+```bash
+curl http://localhost:5000/api/v1/banks/yourbank/{your-endpoint}
+```
+
+With auth enabled, include a valid Bearer token from your external IdP.
+
+### Verify plugin health
+
+```bash
+curl http://localhost:5000/api/v1/health/status
+```
+
+Plugin health checks call `{BaseUrl}health/live` on your service.
+
+---
 
 ## Plugin Capabilities
 
@@ -115,7 +201,7 @@ Not every bank must implement every capability.
 - **Always** use `context.AddBankPluginHttpClient<T>()` — never `new HttpClient()`
 - Correlation IDs are propagated automatically
 - Set `financialOperations: true` for payment/transfer clients
-- Use typed clients (`Bank1AccountsClient` pattern)
+- Use typed clients for health checks and auxiliary calls
 
 ## YARP Routes
 
@@ -127,18 +213,29 @@ Financial routes should set `requiresFinancialResilience: true`.
 
 Register per-plugin health checks in `ConfigureServices`. They appear in `/health/ready` with tag `plugin`.
 
-Liveness (`/health/live`) never depends on downstream banks.
+The health check should call the **service** at `health/live`, not the gateway.
+
+Liveness (`/health/live`) on the gateway never depends on downstream banks.
 
 ## Testing
 
 - Unit test plugin registration with `AddBankingGatewayPlugins`
-- Integration test routes via `WebApplicationFactory<Program>`
-- Do not require production IdP or bank APIs — use sample/mock downstream URLs
+- Unit/integration test the bank service independently
+- Gateway integration tests proxy to in-process bank service hosts via `Gateway.Tests.Integration`
+- Do not require production IdP or real bank APIs for automated tests
 
 ## Dependency Rule
 
 ```
 Gateway.Bank.YourBank  →  Gateway.Framework.Plugins  →  Gateway.Framework.*
+services/YourBank.Service  →  (standalone, no gateway references)
 ```
 
 Never add bank references to framework projects.
+
+## Production
+
+- Bank services: internal cluster DNS only (e.g. `http://yourbank-service.bank-namespace.svc.cluster.local/`)
+- Gateway ingress: public-facing
+- `Plugins:YourBank:BaseUrl`: internal service URL
+- No hardcoded secrets in source or appsettings committed to git

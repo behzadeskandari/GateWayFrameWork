@@ -39,10 +39,11 @@ public sealed class Bank2Plugin : IBankingGatewayPlugin
     {
         var options = pluginConfiguration.Get<Bank2Options>() ?? new Bank2Options();
         routes.AddRoute(
-            routeSuffix: "payments",
-            path: "/api/v1/banks/bank2/payments/{**catch-all}",
+            routeSuffix: "bank2",
+            path: "/api/v1/banks/bank2/{**catch-all}",
             destinationAddress: options.BaseUrl,
-            pathRemovePrefix: "/api/v1/banks/bank2/payments",
+            pathRemovePrefix: "/api/v1/banks/bank2",
+            pathPrefix: "/api",
             requiresFinancialResilience: true);
     }
 

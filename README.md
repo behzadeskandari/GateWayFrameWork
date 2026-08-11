@@ -1,6 +1,6 @@
 # GateWay Framework — .NET 8 Banking API Gateway
 
-A modular **banking API gateway** on **.NET 8** and **YARP** with a **plugin architecture** for bank integrations. This document reflects the **current implementation**.
+A modular **banking API gateway** on **.NET 8** and **YARP** with a **plugin architecture** for bank integrations. Each bank can also run as an **independent ASP.NET Core service** while the gateway routes traffic through bank plugins.
 
 ---
 
@@ -16,24 +16,19 @@ A modular **banking API gateway** on **.NET 8** and **YARP** with a **plugin arc
 
 ---
 
-## Solution Structure (14 projects)
+## Solution Structure (18 projects)
 
 | Project | Role |
 |---|---|
-| `Gateway.Host` | ASP.NET Core host |
-| `Gateway.Framework.Core` | Domain abstractions, errors, responses |
-| `Gateway.Framework.Shared` | DI, HTTP helpers |
-| `Gateway.Framework.Infrastructure` | Configuration options |
-| `Gateway.Framework.Security` | JWT, authorization, secure headers |
-| `Gateway.Framework.Logging` | Serilog, audit, masking |
-| `Gateway.Framework.Monitoring` | Health checks, OpenTelemetry |
-| `Gateway.Framework.Resilience` | Banking-safe HttpClient policies |
-| `Gateway.Framework.Gateway` | YARP, middleware, rate limiting |
-| `Gateway.Framework.Plugins` | **Plugin contract and manager** |
-| `Gateway.Bank.Bank1` | Sample bank plugin (accounts/balance) |
-| `Gateway.Bank.Bank2` | Sample bank plugin (payments/transfers) |
+| `Gateway.Host` | ASP.NET Core gateway host (port **5000**) |
+| `Gateway.Framework.*` | Core framework modules (security, logging, YARP, plugins, …) |
+| `Gateway.Bank.Bank1` | Bank1 **plugin** — gateway routing/config only |
+| `Gateway.Bank.Bank2` | Bank2 **plugin** — gateway routing/config only |
+| `services/Bank1.Service` | Bank1 **service** — accounts/balance business logic (port **5101**) |
+| `services/Bank2.Service` | Bank2 **service** — payments/transfers business logic (port **5102**) |
+| `*.Service.Tests` | Unit + integration tests for each bank service |
 | `Gateway.Tests.Unit` | 18 unit tests |
-| `Gateway.Tests.Integration` | 18 integration tests |
+| `Gateway.Tests.Integration` | 21 integration tests (auth, plugins, gateway→bank E2E) |
 
 See [docs/architecture.md](docs/architecture.md) and [docs/plugin-development.md](docs/plugin-development.md).
 
@@ -42,51 +37,133 @@ See [docs/architecture.md](docs/architecture.md) and [docs/plugin-development.md
 ## Architecture
 
 ```
-Client → External OIDC IdP → JWT → Gateway.Host → Security → Plugin Manager → Bank Plugins → Bank APIs
+Client
+  ↓
+Gateway.Host (:5000)
+  ↓
+Gateway Framework (JWT, rate limit, audit, YARP, resilience, OTel)
+  ↓
+Bank Plugin (Gateway.Bank.Bank1 / Bank2)
+  ↓
+Bank Service (Bank1.Service :5101 / Bank2.Service :5102)
+  ↓
+(Future) Actual Bank API
 ```
+
+### Plugin vs Service
+
+| | **Plugin** (`Gateway.Bank.*`) | **Service** (`services/*.Service`) |
+|---|---|---|
+| Purpose | Gateway integration: YARP routes, health checks, HttpClient config | Bank-specific API, business logic, mapping |
+| Runs in | `Gateway.Host` process | Independent ASP.NET Core app |
+| Security | Uses gateway JWT/auth — does not duplicate it | Bank-specific signing/auth to real bank APIs (demo only here) |
+| Configuration | `Plugins:Bank1:BaseUrl` points to service URL | Own `appsettings.json`, Swagger, health |
 
 The gateway is **stateless**. It does **not** issue tokens or maintain an auth database.
 
 ---
 
-## Plugin Architecture — IMPLEMENTED
+## Local Development — Run All Three Apps
 
-| Component | Status |
-|---|---|
-| `IBankingGatewayPlugin` | **IMPLEMENTED** |
-| `IBankingGatewayPluginManager` | **IMPLEMENTED** |
-| `BankingPluginCapability` | **IMPLEMENTED** |
-| Plugin configuration (`Plugins:{Name}`) | **IMPLEMENTED** |
-| Plugin YARP route merge | **IMPLEMENTED** |
-| Plugin health checks | **IMPLEMENTED** |
-| Sample Bank1 + Bank2 plugins | **IMPLEMENTED** |
-| Framework bank-agnostic | **IMPLEMENTED** |
+Open **three terminals** (or use Docker Compose below):
 
-### Registering plugins (Host)
+### Terminal 1 — Bank1 Service
 
-```csharp
-builder.Services.AddBankingGatewayPlugins(builder.Configuration, plugins =>
-{
-    plugins.AddPlugin<Bank1Plugin>();
-    plugins.AddPlugin<Bank2Plugin>();
-});
+```bash
+dotnet run --project services/Bank1.Service/Bank1.Service.csproj
 ```
 
-### Plugin configuration
+| URL | Purpose |
+|---|---|
+| http://localhost:5101/swagger | Bank1 Swagger UI |
+| http://localhost:5101/api/accounts | List sample accounts |
+| http://localhost:5101/health/live | Liveness |
+| http://localhost:5101/health/ready | Readiness |
+
+### Terminal 2 — Bank2 Service
+
+```bash
+dotnet run --project services/Bank2.Service/Bank2.Service.csproj
+```
+
+| URL | Purpose |
+|---|---|
+| http://localhost:5102/swagger | Bank2 Swagger UI |
+| http://localhost:5102/api/payments | List sample payments |
+| http://localhost:5102/api/transfers | Create sample transfer (POST) |
+| http://localhost:5102/health/live | Liveness |
+| http://localhost:5102/health/ready | Readiness |
+
+### Terminal 3 — Gateway
+
+```bash
+dotnet run --project Gateway.Host/Gateway.Host.csproj
+```
+
+| URL | Purpose |
+|---|---|
+| http://localhost:5000/health/live | Gateway liveness |
+| http://localhost:5000/health/ready | Readiness (includes plugin checks) |
+| http://localhost:5000/api/v1/health/status | Gateway + plugin status JSON |
+| http://localhost:5000/api/v1/banks/bank1/accounts | Proxied → Bank1 service |
+| http://localhost:5000/api/v1/banks/bank2/payments | Proxied → Bank2 service |
+
+### Plugin configuration (`Gateway.Host/appsettings.json`)
 
 ```json
 "Plugins": {
-  "Bank1": { "Enabled": true, "BaseUrl": "http://localhost:5201/", "TimeoutSeconds": 30 },
-  "Bank2": { "Enabled": true, "BaseUrl": "http://localhost:5202/", "TimeoutSeconds": 30 }
+  "Bank1": { "Enabled": true, "BaseUrl": "http://localhost:5101/", "TimeoutSeconds": 30 },
+  "Bank2": { "Enabled": true, "BaseUrl": "http://localhost:5102/", "TimeoutSeconds": 30 }
 }
 ```
 
-### Plugin routes
+---
 
-| Plugin | Route | Capabilities |
+## Testing Checklist
+
+| # | Test | How |
 |---|---|---|
-| Bank1 | `/api/v1/banks/bank1/accounts/**` | Accounts, Balance |
-| Bank2 | `/api/v1/banks/bank2/payments/**` | Payment, Transfer |
+| 1 | Direct Bank1 Swagger | Open http://localhost:5101/swagger, call `GET /api/accounts` |
+| 2 | Direct Bank2 Swagger | Open http://localhost:5102/swagger, call `GET /api/payments` |
+| 3 | Gateway → Bank1 | `GET http://localhost:5000/api/v1/banks/bank1/accounts` |
+| 4 | Gateway → Bank2 | `GET http://localhost:5000/api/v1/banks/bank2/payments` |
+| 5 | Authentication | Enable `Auth:Enabled=true` + valid JWT; without token → 401 |
+| 6 | Authorization | JWT missing required scope/role → 403 |
+| 7 | Correlation ID | Send `X-Correlation-Id: my-id` through gateway; echoed in response |
+| 8 | Idempotency-Key | Send `Idempotency-Key` on POST to Bank2 via gateway; propagated to service |
+| 9 | Downstream failure | Stop Bank1 service; gateway plugin health shows degraded; proxy returns 502 |
+| 10 | Plugin health | `GET http://localhost:5000/api/v1/health/status` lists BANK1/BANK2 |
+
+Automated coverage: `dotnet test GateWayFrameWork.sln` (**50 tests**).
+
+---
+
+## Docker Compose (Development)
+
+```bash
+docker compose up --build
+```
+
+| Service | Host URL |
+|---|---|
+| gateway | http://localhost:5000 |
+| bank1-service | http://localhost:5101 |
+| bank2-service | http://localhost:5102 |
+
+Gateway environment variables wire plugins to internal service names (`http://bank1-service:8080/`).
+
+> **Production:** Bank services must **not** be exposed publicly. Only the gateway ingress should be reachable; bank services run on internal cluster networking.
+
+---
+
+## Build & Test
+
+```bash
+dotnet restore GateWayFrameWork.sln
+dotnet build GateWayFrameWork.sln
+dotnet test GateWayFrameWork.sln
+dotnet sln list
+```
 
 ---
 
@@ -107,7 +184,7 @@ The gateway validates tokens from your IdP. It does **not** implement SSO or tok
 
 ## Idempotency — DELEGATED TO DOWNSTREAM SERVICE
 
-The gateway **propagates** `Idempotency-Key` to downstream services. It does **not** enforce idempotency.
+The gateway **propagates** `Idempotency-Key` to downstream services. Bank2.Service demonstrates local idempotency handling; the gateway does not maintain an idempotency store.
 
 ---
 
@@ -117,6 +194,7 @@ The gateway **propagates** `Idempotency-Key` to downstream services. It does **n
 |---|---|
 | YARP reverse proxy | **IMPLEMENTED** |
 | Plugin YARP routes | **IMPLEMENTED** |
+| Independent bank services | **IMPLEMENTED** |
 | JWT validation | **IMPLEMENTED** |
 | Authorization (roles/scopes) | **IMPLEMENTED** |
 | Rate limiting | **IMPLEMENTED** |
@@ -126,47 +204,7 @@ The gateway **propagates** `Idempotency-Key` to downstream services. It does **n
 | Banking-safe resilience | **IMPLEMENTED** |
 | OpenTelemetry | **IMPLEMENTED** |
 | Health checks + plugin health | **IMPLEMENTED** |
-| CORS | **NOT IMPLEMENTED** (configure at ingress) |
-| ICache / IEncryptionService | **NOT IMPLEMENTED** (not registered) |
 | Token issuance / Identity Server | **NOT IMPLEMENTED** |
-
----
-
-## Tests (36 total)
-
-```bash
-dotnet test GateWayFrameWork.sln
-```
-
-| Area | Coverage |
-|---|---|
-| Auth config validation | Unit |
-| Sensitive data masking | Unit |
-| Plugin manager (duplicate BankCode, config validation, routes) | Unit |
-| Health endpoints | Integration |
-| JWT pipeline (11 scenarios) | Integration |
-| Plugin routes and health status | Integration |
-
----
-
-## Build & Run
-
-```bash
-dotnet restore GateWayFrameWork.sln
-dotnet build GateWayFrameWork.sln
-dotnet test GateWayFrameWork.sln
-dotnet run --project Gateway.Host/Gateway.Host.csproj
-```
-
-### Endpoints
-
-| Endpoint | Purpose |
-|---|---|
-| `GET /health/live` | Liveness |
-| `GET /health/ready` | Readiness (includes plugin checks) |
-| `GET /api/v1/health/status` | Gateway + plugin status JSON |
-| `/api/v1/banks/bank1/accounts/**` | Bank1 plugin proxy |
-| `/api/v1/banks/bank2/payments/**` | Bank2 plugin proxy |
 
 ---
 
@@ -176,27 +214,16 @@ dotnet run --project Gateway.Host/Gateway.Host.csproj
 |---|---|
 | `Auth__Authority` | Yes |
 | `Auth__Audience` | Yes |
-| `Plugins__Bank1__BaseUrl` | If Bank1 enabled |
-| `Plugins__Bank2__BaseUrl` | If Bank2 enabled |
+| `Plugins__Bank1__BaseUrl` | If Bank1 enabled (internal URL, not public) |
+| `Plugins__Bank2__BaseUrl` | If Bank2 enabled (internal URL, not public) |
 | `OpenTelemetry__OtlpEndpoint` | Optional |
-
----
-
-## Docker & Kubernetes
-
-```bash
-docker build -t gateway-host:latest -f Gateway.Host/Dockerfile .
-kubectl apply -f k8s/deployment.yaml
-```
-
-Docker runs as non-root. Kubernetes manifest includes `securityContext`, probes, and secret refs.
 
 ---
 
 ## External Dependencies
 
 1. **OIDC Identity Provider** — token issuance and JWKS
-2. **Downstream bank APIs** — per plugin BaseUrl
+2. **Bank services** — per plugin `BaseUrl` (internal in production)
 3. **OTLP collector** — optional
 4. **Ingress/WAF** — TLS, CORS if needed
 

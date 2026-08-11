@@ -6,17 +6,13 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
-    <RootNamespace>Gateway.Tests.Integration</RootNamespace>
+    <RootNamespace>Bank1.Service.Tests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Gateway.Host\Gateway.Host.csproj" />
-    <ProjectReference Include="..\services\Bank1.Service\Bank1.Service.csproj" />
-    <ProjectReference Include="..\services\Bank2.Service\Bank2.Service.csproj" />
+    <ProjectReference Include="..\Bank1.Service\Bank1.Service.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.11" />
-    <PackageReference Include="Yarp.ReverseProxy" Version="2.2.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.0" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

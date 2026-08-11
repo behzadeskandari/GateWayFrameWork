@@ -17,20 +17,32 @@ public sealed class PluginProxyConfigSource : IPluginProxyConfigSource
 
     public (IReadOnlyList<RouteConfig> Routes, IReadOnlyList<ClusterConfig> Clusters) GetPluginProxyConfig()
     {
-        var routes = _registry.Routes.Select(route => new RouteConfig
+        var routes = _registry.Routes.Select(route =>
         {
-            RouteId = route.RouteId,
-            ClusterId = route.ClusterId,
-            Match = new RouteMatch { Path = route.Path },
-            Transforms = route.PathRemovePrefix is null
-                ? Array.Empty<IReadOnlyDictionary<string, string>>()
-                :
-                [
-                    new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                    {
-                        ["PathRemovePrefix"] = route.PathRemovePrefix
-                    }
-                ]
+            var transforms = new List<IReadOnlyDictionary<string, string>>();
+            if (!string.IsNullOrWhiteSpace(route.PathRemovePrefix))
+            {
+                transforms.Add(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["PathRemovePrefix"] = route.PathRemovePrefix
+                });
+            }
+
+            if (!string.IsNullOrWhiteSpace(route.PathPrefix))
+            {
+                transforms.Add(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["PathPrefix"] = route.PathPrefix
+                });
+            }
+
+            return new RouteConfig
+            {
+                RouteId = route.RouteId,
+                ClusterId = route.ClusterId,
+                Match = new RouteMatch { Path = route.Path },
+                Transforms = transforms
+            };
         }).ToList();
 
         var clusters = _registry.Clusters.Select(cluster => new ClusterConfig

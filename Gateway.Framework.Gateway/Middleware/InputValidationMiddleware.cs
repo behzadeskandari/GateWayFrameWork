@@ -55,7 +55,7 @@ public sealed partial class InputValidationMiddleware
         await _next(context);
     }
 
-    [GeneratedRegex(@"[<>""';]", RegexOptions.Compiled)]
+    [GeneratedRegex(@"[<>""']", RegexOptions.Compiled)]
     private static partial Regex SuspiciousPattern();
 }
 

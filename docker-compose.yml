@@ -1,0 +1,35 @@
+services:
+  bank1-service:
+    build:
+      context: .
+      dockerfile: services/Bank1.Service/Dockerfile
+    ports:
+      - "5101:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+
+  bank2-service:
+    build:
+      context: .
+      dockerfile: services/Bank2.Service/Dockerfile
+    ports:
+      - "5102:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+
+  gateway:
+    build:
+      context: .
+      dockerfile: Gateway.Host/Dockerfile
+    ports:
+      - "5000:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Plugins__Bank1__Enabled: "true"
+      Plugins__Bank1__BaseUrl: "http://bank1-service:8080/"
+      Plugins__Bank2__Enabled: "true"
+      Plugins__Bank2__BaseUrl: "http://bank2-service:8080/"
+      Auth__Enabled: "false"
+    depends_on:
+      - bank1-service
+      - bank2-service

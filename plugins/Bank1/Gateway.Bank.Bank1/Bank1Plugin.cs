@@ -40,10 +40,11 @@ public sealed class Bank1Plugin : IBankingGatewayPlugin
     {
         var options = pluginConfiguration.Get<Bank1Options>() ?? new Bank1Options();
         routes.AddRoute(
-            routeSuffix: "accounts",
-            path: "/api/v1/banks/bank1/accounts/{**catch-all}",
+            routeSuffix: "bank1",
+            path: "/api/v1/banks/bank1/{**catch-all}",
             destinationAddress: options.BaseUrl,
-            pathRemovePrefix: "/api/v1/banks/bank1/accounts");
+            pathRemovePrefix: "/api/v1/banks/bank1",
+            pathPrefix: "/api");
     }
 
     public Task InitializeAsync(BankingGatewayPluginContext context, CancellationToken cancellationToken = default) =>
