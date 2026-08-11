@@ -12,5 +12,7 @@ public sealed class Bank2WebApplicationFactory : WebApplicationFactory<Program>
     {
         builder.UseSetting("Database:ConnectionString", $"Data Source=bank2-test-{_databaseId}.db");
         builder.UseSetting("AuditDatabase:ConnectionString", $"Data Source=bank2-audit-test-{_databaseId}.db");
+        builder.UseSetting("Bank2Reconciliation:Enabled", "false");
+        builder.UseSetting("Bank2Proxy:Enabled", "false");
     }
 }

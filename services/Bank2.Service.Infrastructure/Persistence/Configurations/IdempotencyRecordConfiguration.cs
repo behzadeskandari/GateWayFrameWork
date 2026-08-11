@@ -1,4 +1,5 @@
 using Bank2.Service.Domain.Entities;
+using Bank2.Service.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -21,9 +22,19 @@ public sealed class IdempotencyRecordConfiguration : IEntityTypeConfiguration<Id
             .HasMaxLength(32)
             .IsRequired();
 
-        builder.Property(record => record.ResponsePayload)
-            .HasColumnName("response_payload")
+        builder.Property(record => record.RequestFingerprint)
+            .HasColumnName("request_fingerprint")
+            .HasMaxLength(64)
             .IsRequired();
+
+        builder.Property(record => record.Status)
+            .HasColumnName("status")
+            .HasConversion<string>()
+            .HasMaxLength(16)
+            .IsRequired();
+
+        builder.Property(record => record.ResponsePayload)
+            .HasColumnName("response_payload");
 
         builder.Property(record => record.CreatedAt)
             .HasColumnName("created_at");

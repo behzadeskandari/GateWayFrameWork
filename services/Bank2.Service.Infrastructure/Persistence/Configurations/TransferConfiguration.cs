@@ -45,6 +45,22 @@ public sealed class TransferConfiguration : IEntityTypeConfiguration<Transfer>
             .HasColumnName("reference")
             .HasMaxLength(256);
 
+        builder.Property(transfer => transfer.BankReferenceId)
+            .HasColumnName("bank_reference_id")
+            .HasMaxLength(128);
+
+        builder.Property(transfer => transfer.IdempotencyKey)
+            .HasColumnName("idempotency_key")
+            .HasMaxLength(128);
+
+        builder.Property(transfer => transfer.CorrelationId)
+            .HasColumnName("correlation_id")
+            .HasMaxLength(64);
+
+        builder.Property(transfer => transfer.ErrorCode)
+            .HasColumnName("error_code")
+            .HasMaxLength(64);
+
         builder.Property(transfer => transfer.CreatedAt)
             .HasColumnName("created_at");
 
@@ -58,5 +74,11 @@ public sealed class TransferConfiguration : IEntityTypeConfiguration<Transfer>
 
         builder.HasIndex(transfer => transfer.CreatedAt)
             .HasDatabaseName("ix_transfers_created_at");
+
+        builder.HasIndex(transfer => transfer.Status)
+            .HasDatabaseName("ix_transfers_status");
+
+        builder.HasIndex(transfer => transfer.BankReferenceId)
+            .HasDatabaseName("ix_transfers_bank_reference_id");
     }
 }

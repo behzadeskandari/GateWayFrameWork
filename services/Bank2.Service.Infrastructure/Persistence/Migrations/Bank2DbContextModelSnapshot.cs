@@ -34,10 +34,21 @@ namespace Bank2.Service.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("operation_type");
 
-                    b.Property<string>("ResponsePayload")
+                    b.Property<string>("RequestFingerprint")
                         .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("request_fingerprint");
+
+                    b.Property<string>("ResponsePayload")
                         .HasColumnType("TEXT")
                         .HasColumnName("response_payload");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("status");
 
                     b.HasKey("Key");
 
@@ -80,6 +91,26 @@ namespace Bank2.Service.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("reference");
 
+                    b.Property<string>("BankReferenceId")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("bank_reference_id");
+
+                    b.Property<string>("CorrelationId")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("correlation_id");
+
+                    b.Property<string>("ErrorCode")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("error_code");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("idempotency_key");
+
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
@@ -106,6 +137,12 @@ namespace Bank2.Service.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("FromAccountId")
                         .HasDatabaseName("ix_payments_from_account_id");
+
+                    b.HasIndex("BankReferenceId")
+                        .HasDatabaseName("ix_payments_bank_reference_id");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("ix_payments_status");
 
                     b.ToTable("payments", (string)null);
                 });
@@ -143,6 +180,26 @@ namespace Bank2.Service.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("reference");
 
+                    b.Property<string>("BankReferenceId")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("bank_reference_id");
+
+                    b.Property<string>("CorrelationId")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("correlation_id");
+
+                    b.Property<string>("ErrorCode")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("error_code");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("idempotency_key");
+
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
@@ -169,6 +226,12 @@ namespace Bank2.Service.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("FromAccountId")
                         .HasDatabaseName("ix_transfers_from_account_id");
+
+                    b.HasIndex("BankReferenceId")
+                        .HasDatabaseName("ix_transfers_bank_reference_id");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("ix_transfers_status");
 
                     b.ToTable("transfers", (string)null);
                 });

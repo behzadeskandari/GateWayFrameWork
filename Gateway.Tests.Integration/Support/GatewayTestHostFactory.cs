@@ -19,6 +19,8 @@ internal sealed class BankServiceTestHost<TEntryPoint> : IAsyncDisposable
         {
             builder.UseSetting("Database:ConnectionString", $"Data Source=bank-test-{databaseId}.db");
             builder.UseSetting("AuditDatabase:ConnectionString", $"Data Source=bank-audit-test-{databaseId}.db");
+            builder.UseSetting("Bank2Reconciliation:Enabled", "false");
+            builder.UseSetting("Bank2Proxy:Enabled", "false");
         });
         Handler = _factory.Server.CreateHandler();
         BaseUrl = $"http://{HostName}/";

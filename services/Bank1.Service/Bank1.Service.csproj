@@ -19,6 +19,7 @@
     <ProjectReference Include="..\Bank1.Service.Application\Bank1.Service.Application.csproj" />
     <ProjectReference Include="..\Bank1.Service.Infrastructure\Bank1.Service.Infrastructure.csproj" />
     <ProjectReference Include="..\Bank1.Service.Contracts\Bank1.Service.Contracts.csproj" />
+    <ProjectReference Include="..\Shared\Banking.Service.External.Abstractions\Banking.Service.External.Abstractions.csproj" />
   </ItemGroup>
 
 </Project>

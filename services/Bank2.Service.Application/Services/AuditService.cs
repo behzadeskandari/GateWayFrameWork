@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Banking.Service.Audit.Abstractions;
 using Bank2.Service.Application.Abstractions;
 using Bank2.Service.Application.Configuration;
@@ -35,6 +36,32 @@ public sealed class AuditService : IAuditService
             ResourceId = resourceId,
             Success = success,
             ErrorCode = errorCode
+        };
+
+        return _auditWriter.WriteAsync(entry, cancellationToken);
+    }
+
+    public Task WriteLifecycleEventAsync(
+        string operation,
+        string resourceType,
+        string resourceId,
+        bool success,
+        string? correlationId,
+        string? errorCode = null,
+        string? metadataJson = null,
+        CancellationToken cancellationToken = default)
+    {
+        var entry = new AuditEntry
+        {
+            ServiceName = _options.ServiceName,
+            EventType = "FinancialLifecycle",
+            Operation = operation,
+            CorrelationId = correlationId,
+            ResourceType = resourceType,
+            ResourceId = resourceId,
+            Success = success,
+            ErrorCode = errorCode,
+            MetadataJson = metadataJson
         };
 
         return _auditWriter.WriteAsync(entry, cancellationToken);

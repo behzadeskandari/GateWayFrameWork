@@ -1,7 +1,8 @@
+using Banking.Service.External.Abstractions;
+using Bank1.Service.Application.Configuration;
 using Banking.Service.Audit.Abstractions;
 using Bank1.Service.Application.Abstractions.External;
 using Bank1.Service.Application.Abstractions.Persistence;
-using Bank1.Service.Application.Configuration;
 using Bank1.Service.Infrastructure.ExternalServices;
 using Bank1.Service.Infrastructure.HealthChecks;
 using Bank1.Service.Infrastructure.Persistence;
@@ -9,6 +10,7 @@ using Bank1.Service.Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace Bank1.Service.Infrastructure.DependencyInjection;
 
@@ -19,6 +21,11 @@ public static class InfrastructureServiceCollectionExtensions
         var databaseOptions = configuration.GetSection(DatabaseOptions.SectionName).Get<DatabaseOptions>() ?? new DatabaseOptions();
         var auditDatabaseOptions = configuration.GetSection(AuditDatabaseOptions.SectionName).Get<AuditDatabaseOptions>() ?? new AuditDatabaseOptions();
         var proxyOptions = configuration.GetSection(Bank1ProxyOptions.SectionName).Get<Bank1ProxyOptions>() ?? new Bank1ProxyOptions();
+
+        services.AddOptions<Bank1ProxyOptions>()
+            .Bind(configuration.GetSection(Bank1ProxyOptions.SectionName))
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<Bank1ProxyOptions>, Bank1ProxyOptionsValidator>();
 
         services.AddDbContext<Bank1DbContext>(options =>
             ConfigureProvider(options, databaseOptions.Provider, databaseOptions.ConnectionString));
@@ -37,11 +44,7 @@ public static class InfrastructureServiceCollectionExtensions
 
         if (proxyOptions.Enabled)
         {
-            services.AddHttpClient<IBank1Client, Bank1BankingProxy>(client =>
-                {
-                    client.BaseAddress = new Uri(proxyOptions.BaseUrl);
-                })
-                .AddBank1ProxyResilience();
+            services.AddBank1ExternalProxy(proxyOptions);
         }
         else
         {

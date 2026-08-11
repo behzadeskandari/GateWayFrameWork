@@ -45,6 +45,22 @@ public sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
             .HasColumnName("reference")
             .HasMaxLength(256);
 
+        builder.Property(payment => payment.BankReferenceId)
+            .HasColumnName("bank_reference_id")
+            .HasMaxLength(128);
+
+        builder.Property(payment => payment.IdempotencyKey)
+            .HasColumnName("idempotency_key")
+            .HasMaxLength(128);
+
+        builder.Property(payment => payment.CorrelationId)
+            .HasColumnName("correlation_id")
+            .HasMaxLength(64);
+
+        builder.Property(payment => payment.ErrorCode)
+            .HasColumnName("error_code")
+            .HasMaxLength(64);
+
         builder.Property(payment => payment.CreatedAt)
             .HasColumnName("created_at");
 
@@ -58,5 +74,11 @@ public sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
 
         builder.HasIndex(payment => payment.CreatedAt)
             .HasDatabaseName("ix_payments_created_at");
+
+        builder.HasIndex(payment => payment.Status)
+            .HasDatabaseName("ix_payments_status");
+
+        builder.HasIndex(payment => payment.BankReferenceId)
+            .HasDatabaseName("ix_payments_bank_reference_id");
     }
 }

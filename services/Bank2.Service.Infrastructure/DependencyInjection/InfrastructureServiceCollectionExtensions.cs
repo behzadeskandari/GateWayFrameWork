@@ -1,4 +1,5 @@
 using Banking.Service.Audit.Abstractions;
+using Bank2.Service.Application.Abstractions;
 using Bank2.Service.Application.Abstractions.External;
 using Bank2.Service.Application.Abstractions.Persistence;
 using Bank2.Service.Application.Configuration;
@@ -6,9 +7,11 @@ using Bank2.Service.Infrastructure.ExternalServices;
 using Bank2.Service.Infrastructure.HealthChecks;
 using Bank2.Service.Infrastructure.Persistence;
 using Bank2.Service.Infrastructure.Persistence.Repositories;
+using Bank2.Service.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace Bank2.Service.Infrastructure.DependencyInjection;
 
@@ -19,6 +22,11 @@ public static class InfrastructureServiceCollectionExtensions
         var databaseOptions = configuration.GetSection(DatabaseOptions.SectionName).Get<DatabaseOptions>() ?? new DatabaseOptions();
         var auditDatabaseOptions = configuration.GetSection(AuditDatabaseOptions.SectionName).Get<AuditDatabaseOptions>() ?? new AuditDatabaseOptions();
         var proxyOptions = configuration.GetSection(Bank2ProxyOptions.SectionName).Get<Bank2ProxyOptions>() ?? new Bank2ProxyOptions();
+
+        services.AddOptions<Bank2ProxyOptions>()
+            .Bind(configuration.GetSection(Bank2ProxyOptions.SectionName))
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<Bank2ProxyOptions>, Bank2ProxyOptionsValidator>();
 
         services.AddDbContext<Bank2DbContext>(options =>
             ConfigureProvider(options, databaseOptions.Provider, databaseOptions.ConnectionString));
@@ -36,18 +44,12 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IAuditWriter, AuditWriter>();
         services.AddScoped<DatabaseInitializer>();
+        services.AddScoped<IReconciliationService, Bank2ReconciliationService>();
 
         if (proxyOptions.Enabled)
         {
-            services.AddHttpClient<IBank2Client, Bank2BankingProxy>(client =>
-                {
-                    client.BaseAddress = new Uri(proxyOptions.BaseUrl);
-                })
-                .AddBank2ProxyResilience();
-        }
-        else
-        {
-            services.AddScoped<IBank2Client, Bank2BankingProxy>();
+            services.AddBank2ExternalProxy(proxyOptions);
+            services.AddScoped<IBank2ExternalGateway, Bank2ExternalGateway>();
         }
 
         services.AddHealthChecks()

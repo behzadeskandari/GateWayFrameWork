@@ -27,6 +27,7 @@ public sealed class Program
         });
         builder.Services.AddHealthChecks()
             .AddCheck("self", () => Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy("Bank2 service is running."), tags: ["live"]);
+        builder.Services.AddHostedService<Background.Bank2ReconciliationHostedService>();
 
         var app = builder.Build();
 
@@ -43,7 +44,9 @@ public sealed class Program
         }
 
         app.UseMiddleware<CorrelationIdMiddleware>();
+        app.UseMiddleware<ExceptionHandlingMiddleware>();
         app.UseMiddleware<IdempotencyMiddleware>();
+        app.UseMiddleware<FinancialIdempotencyRequiredMiddleware>();
         app.UseMiddleware<AuditMiddleware>();
         app.MapControllers();
         app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions

@@ -4,4 +4,6 @@ public sealed record PaymentResponse(
     string Id,
     string Status,
     string Message,
-    DateTimeOffset ProcessedAt);
+    DateTimeOffset ProcessedAt,
+    string? BankReferenceId = null,
+    bool RequiresStatusInquiry = false);

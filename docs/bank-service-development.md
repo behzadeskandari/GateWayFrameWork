@@ -180,7 +180,24 @@ Application depends on abstractions (`IBank1Client`, `IBank2Client`). Infrastruc
 | Mode | Behavior |
 |---|---|
 | `Bank1Proxy:Enabled=false` (default dev) | Reads/writes local database |
-| `Bank1Proxy:Enabled=true` | HTTP client to real bank API — **REQUIRES REAL BANK INTEGRATION** |
+| `Bank1Proxy:Enabled=true` | HTTP calls to configurable external adapter endpoints |
+
+### External adapter authentication
+
+Configure under `Bank1Proxy:Authentication` / `Bank2Proxy:Authentication`:
+
+| Mode | Required settings |
+|---|---|
+| `None` | No outbound auth headers |
+| `ApiKey` | `ApiKey`, optional `ApiKeyHeaderName` |
+| `OAuth2ClientCredentials` | `TokenEndpoint`, `ClientId`, `ClientSecret`, optional `Scope` |
+| `MutualTls` | Host-level certificate wiring (document only; not auto-configured) |
+
+Secrets must come from environment variables or a secret store — never commit real credentials.
+
+Correlation IDs propagate automatically via `X-Correlation-Id` on outbound bank API calls.
+
+POST payment/transfer operations are **not** retried by the HTTP resilience policy. GET operations may retry on transient failures.
 
 Resilience policies (timeout, circuit breaker) apply only when the proxy is enabled. POST payment/transfer operations are **not** blindly retried; idempotency keys protect Bank2 write operations.
 

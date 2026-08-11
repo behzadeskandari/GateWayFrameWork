@@ -4,4 +4,6 @@ public sealed record TransferResponse(
     string Id,
     string Status,
     string Message,
-    DateTimeOffset ProcessedAt);
+    DateTimeOffset ProcessedAt,
+    string? BankReferenceId = null,
+    bool RequiresStatusInquiry = false);

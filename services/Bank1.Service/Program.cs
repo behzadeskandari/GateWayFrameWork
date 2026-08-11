@@ -42,7 +42,9 @@ public sealed class Program
             app.UseSwaggerUI(options => options.SwaggerEndpoint("/swagger/v1/swagger.json", "Bank1 Sample Service v1"));
         }
 
+        app.UseMiddleware<ExceptionHandlingMiddleware>();
         app.UseMiddleware<CorrelationIdMiddleware>();
+        app.UseMiddleware<ExceptionHandlingMiddleware>();
         app.UseMiddleware<AuditMiddleware>();
         app.MapControllers();
         app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions

@@ -1,8 +1,11 @@
 using Bank2.Service.Application.Abstractions;
 using Bank2.Service.Application.Configuration;
 using Bank2.Service.Application.Features.Payments.CreatePayment;
+using Bank2.Service.Application.Features.Payments.GetPaymentStatus;
 using Bank2.Service.Application.Features.Payments.GetPayments;
 using Bank2.Service.Application.Features.Transfers.CreateTransfer;
+using Bank2.Service.Application.Features.Transfers.GetTransferStatus;
+using Bank2.Service.Application.Features.Transfers.GetTransfers;
 using Bank2.Service.Application.Services;
 using FluentValidation;
 using Microsoft.Extensions.Configuration;
@@ -18,12 +21,17 @@ public static class ApplicationServiceCollectionExtensions
         services.Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName));
         services.Configure<AuditDatabaseOptions>(configuration.GetSection(AuditDatabaseOptions.SectionName));
         services.Configure<Bank2ProxyOptions>(configuration.GetSection(Bank2ProxyOptions.SectionName));
+        services.Configure<Bank2ReconciliationOptions>(configuration.GetSection(Bank2ReconciliationOptions.SectionName));
 
         services.AddValidatorsFromAssemblyContaining<CreatePaymentValidator>();
 
         services.AddScoped<IGetPaymentsHandler, GetPaymentsHandler>();
         services.AddScoped<ICreatePaymentHandler, CreatePaymentHandler>();
+        services.AddScoped<IGetPaymentStatusHandler, GetPaymentStatusHandler>();
+        services.AddScoped<IGetTransfersHandler, GetTransfersHandler>();
         services.AddScoped<ICreateTransferHandler, CreateTransferHandler>();
+        services.AddScoped<IGetTransferStatusHandler, GetTransferStatusHandler>();
+        services.AddScoped<IFinancialTransactionService, FinancialTransactionService>();
         services.AddScoped<IAuditService, AuditService>();
 
         return services;
