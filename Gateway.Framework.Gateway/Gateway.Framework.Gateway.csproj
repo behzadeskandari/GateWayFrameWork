@@ -1,0 +1,55 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+
+
+  <PropertyGroup>
+
+    <TargetFramework>net8.0</TargetFramework>
+
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <Nullable>enable</Nullable>
+
+    <RootNamespace>Gateway.Framework.Gateway</RootNamespace>
+
+  </PropertyGroup>
+
+
+
+  <ItemGroup>
+
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+
+  </ItemGroup>
+
+
+
+  <ItemGroup>
+
+    <ProjectReference Include="..\Gateway.Framework.Core\Gateway.Framework.Core.csproj" />
+
+    <ProjectReference Include="..\Gateway.Framework.Shared\Gateway.Framework.Shared.csproj" />
+
+    <ProjectReference Include="..\Gateway.Framework.Infrastructure\Gateway.Framework.Infrastructure.csproj" />
+
+    <ProjectReference Include="..\Gateway.Framework.Logging\Gateway.Framework.Logging.csproj" />
+
+    <ProjectReference Include="..\Gateway.Framework.Resilience\Gateway.Framework.Resilience.csproj" />
+    <ProjectReference Include="..\Gateway.Framework.Security\Gateway.Framework.Security.csproj" />
+    <ProjectReference Include="..\Gateway.Framework.Monitoring\Gateway.Framework.Monitoring.csproj" />
+    <ProjectReference Include="..\Gateway.Framework.Plugins\Gateway.Framework.Plugins.csproj" />
+
+    <PackageReference Include="Asp.Versioning.Http" Version="8.1.0" />
+
+    <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.0" />
+
+    <PackageReference Include="Yarp.ReverseProxy" Version="2.2.0" />
+
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="8.0.0" />
+
+  </ItemGroup>
+
+
+
+</Project>
+

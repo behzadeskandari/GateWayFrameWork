@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Gateway.Host</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Gateway.Tests.Integration" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Gateway.Framework.Core\Gateway.Framework.Core.csproj" />
+    <ProjectReference Include="..\Gateway.Framework.Shared\Gateway.Framework.Shared.csproj" />
+    <ProjectReference Include="..\Gateway.Framework.Infrastructure\Gateway.Framework.Infrastructure.csproj" />
+    <ProjectReference Include="..\Gateway.Framework.Security\Gateway.Framework.Security.csproj" />
+    <ProjectReference Include="..\Gateway.Framework.Logging\Gateway.Framework.Logging.csproj" />
+    <ProjectReference Include="..\Gateway.Framework.Monitoring\Gateway.Framework.Monitoring.csproj" />
+    <ProjectReference Include="..\Gateway.Framework.Resilience\Gateway.Framework.Resilience.csproj" />
+    <ProjectReference Include="..\Gateway.Framework.Gateway\Gateway.Framework.Gateway.csproj" />
+    <ProjectReference Include="..\Gateway.Framework.Plugins\Gateway.Framework.Plugins.csproj" />
+    <ProjectReference Include="..\plugins\Bank1\Gateway.Bank.Bank1\Gateway.Bank.Bank1.csproj" />
+    <ProjectReference Include="..\plugins\Bank2\Gateway.Bank.Bank2\Gateway.Bank.Bank2.csproj" />
+  </ItemGroup>
+
+</Project>
