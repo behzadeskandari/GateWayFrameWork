@@ -1,5 +1,7 @@
-using Bank2.Service.Application.Models;
-using Bank2.Service.Application.Services;
+using Bank2.Service.Application.Features.Payments.CreatePayment;
+using Bank2.Service.Application.Features.Payments.GetPayments;
+using Bank2.Service.Contracts.Payments;
+using Bank2.Service.Middleware;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Bank2.Service.Controllers;
@@ -8,54 +10,37 @@ namespace Bank2.Service.Controllers;
 [Route("api/payments")]
 public sealed class PaymentsController : ControllerBase
 {
-    private readonly IPaymentService _paymentService;
+    private readonly IGetPaymentsHandler _getPaymentsHandler;
+    private readonly ICreatePaymentHandler _createPaymentHandler;
 
-    public PaymentsController(IPaymentService paymentService) => _paymentService = paymentService;
+    public PaymentsController(
+        IGetPaymentsHandler getPaymentsHandler,
+        ICreatePaymentHandler createPaymentHandler)
+    {
+        _getPaymentsHandler = getPaymentsHandler;
+        _createPaymentHandler = createPaymentHandler;
+    }
 
     [HttpGet]
+    [ProducesResponseType(typeof(PaymentsListResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> List(CancellationToken cancellationToken)
     {
-        var payments = await _paymentService.ListPaymentsAsync(cancellationToken);
-        return Ok(new
-        {
-            Service = "Bank2.Service",
-            CorrelationId = HttpContext.Items["CorrelationId"],
-            Data = payments
-        });
+        var correlationId = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
+        var response = await _getPaymentsHandler.HandleAsync(correlationId, cancellationToken);
+        return Ok(response);
     }
 
     [HttpPost]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
     public async Task<IActionResult> Create([FromBody] CreatePaymentRequest request, CancellationToken cancellationToken)
     {
-        var idempotencyKey = HttpContext.Items["IdempotencyKey"]?.ToString();
-        var result = await _paymentService.CreatePaymentAsync(request, idempotencyKey, cancellationToken);
+        var idempotencyKey = HttpContext.Items[IdempotencyMiddleware.IdempotencyKeyItemKey] as string;
+        var correlationId = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
+        var result = await _createPaymentHandler.HandleAsync(request, idempotencyKey, cancellationToken);
         return Accepted(new
         {
             Service = "Bank2.Service",
-            CorrelationId = HttpContext.Items["CorrelationId"],
-            IdempotencyKey = idempotencyKey,
-            Data = result
-        });
-    }
-}
-
-[ApiController]
-[Route("api/transfers")]
-public sealed class TransfersController : ControllerBase
-{
-    private readonly IPaymentService _paymentService;
-
-    public TransfersController(IPaymentService paymentService) => _paymentService = paymentService;
-
-    [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateTransferRequest request, CancellationToken cancellationToken)
-    {
-        var idempotencyKey = HttpContext.Items["IdempotencyKey"]?.ToString();
-        var result = await _paymentService.CreateTransferAsync(request, idempotencyKey, cancellationToken);
-        return Accepted(new
-        {
-            Service = "Bank2.Service",
-            CorrelationId = HttpContext.Items["CorrelationId"],
+            CorrelationId = correlationId,
             IdempotencyKey = idempotencyKey,
             Data = result
         });

@@ -1,4 +1,60 @@
 services:
+  bank1-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: bank1
+      POSTGRES_PASSWORD: bank1_dev_password
+      POSTGRES_DB: bank1db
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bank1 -d bank1db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  bank1-log-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: bank1log
+      POSTGRES_PASSWORD: bank1log_dev_password
+      POSTGRES_DB: bank1logdb
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bank1log -d bank1logdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  bank2-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: bank2
+      POSTGRES_PASSWORD: bank2_dev_password
+      POSTGRES_DB: bank2db
+    ports:
+      - "5435:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bank2 -d bank2db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  bank2-log-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: bank2log
+      POSTGRES_PASSWORD: bank2log_dev_password
+      POSTGRES_DB: bank2logdb
+    ports:
+      - "5436:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bank2log -d bank2logdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   bank1-service:
     build:
       context: .
@@ -7,6 +63,15 @@ services:
       - "5101:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
+      Database__Provider: Npgsql
+      Database__ConnectionString: Host=bank1-db;Port=5432;Database=bank1db;Username=bank1;Password=bank1_dev_password
+      AuditDatabase__Provider: Npgsql
+      AuditDatabase__ConnectionString: Host=bank1-log-db;Port=5432;Database=bank1logdb;Username=bank1log;Password=bank1log_dev_password
+    depends_on:
+      bank1-db:
+        condition: service_healthy
+      bank1-log-db:
+        condition: service_healthy
 
   bank2-service:
     build:
@@ -16,6 +81,15 @@ services:
       - "5102:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
+      Database__Provider: Npgsql
+      Database__ConnectionString: Host=bank2-db;Port=5432;Database=bank2db;Username=bank2;Password=bank2_dev_password
+      AuditDatabase__Provider: Npgsql
+      AuditDatabase__ConnectionString: Host=bank2-log-db;Port=5432;Database=bank2logdb;Username=bank2log;Password=bank2log_dev_password
+    depends_on:
+      bank2-db:
+        condition: service_healthy
+      bank2-log-db:
+        condition: service_healthy
 
   gateway:
     build:
@@ -31,5 +105,7 @@ services:
       Plugins__Bank2__BaseUrl: "http://bank2-service:8080/"
       Auth__Enabled: "false"
     depends_on:
-      - bank1-service
-      - bank2-service
+      bank1-service:
+        condition: service_started
+      bank2-service:
+        condition: service_started

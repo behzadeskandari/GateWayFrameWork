@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Bank1.Service;
 using Bank2.Service;
-using Bank2.Service.Application.Models;
+using Bank2.Service.Contracts.Payments;
 using Gateway.Tests.Integration.Support;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;

@@ -1,18 +1,18 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text;
 using Bank2.Service;
-using Bank2.Service.Application.Models;
+using Bank2.Service.Contracts.Payments;
+using Bank2.Service.Contracts.Transfers;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 
 namespace Bank2.Service.Tests;
 
-public sealed class Bank2ServiceIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+public sealed class Bank2ServiceIntegrationTests : IClassFixture<Bank2WebApplicationFactory>
 {
     private readonly HttpClient _client;
 
-    public Bank2ServiceIntegrationTests(WebApplicationFactory<Program> factory) =>
+    public Bank2ServiceIntegrationTests(Bank2WebApplicationFactory factory) =>
         _client = factory.CreateClient();
 
     [Fact]
@@ -36,7 +36,7 @@ public sealed class Bank2ServiceIntegrationTests : IClassFixture<WebApplicationF
         {
             Content = JsonContent.Create(new CreatePaymentRequest("acc-1001", "acc-1002", 10m, "USD", "demo"))
         };
-        request.Headers.Add("Idempotency-Key", "demo-payment-key-1");
+        request.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString("N"));
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
     }
@@ -48,7 +48,7 @@ public sealed class Bank2ServiceIntegrationTests : IClassFixture<WebApplicationF
         {
             Content = JsonContent.Create(new CreateTransferRequest("acc-1001", "acc-1002", 25m, "USD", "demo"))
         };
-        request.Headers.Add("Idempotency-Key", "demo-transfer-key-1");
+        request.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString("N"));
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
     }

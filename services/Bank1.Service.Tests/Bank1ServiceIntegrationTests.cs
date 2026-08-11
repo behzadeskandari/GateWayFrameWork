@@ -5,11 +5,11 @@ using Xunit;
 
 namespace Bank1.Service.Tests;
 
-public sealed class Bank1ServiceIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+public sealed class Bank1ServiceIntegrationTests : IClassFixture<Bank1WebApplicationFactory>
 {
     private readonly HttpClient _client;
 
-    public Bank1ServiceIntegrationTests(WebApplicationFactory<Program> factory) =>
+    public Bank1ServiceIntegrationTests(Bank1WebApplicationFactory factory) =>
         _client = factory.CreateClient();
 
     [Fact]

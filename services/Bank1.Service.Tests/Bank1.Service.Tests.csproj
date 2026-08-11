@@ -11,7 +11,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Bank1.Service\Bank1.Service.csproj" />
+    <ProjectReference Include="..\Bank1.Service.Infrastructure\Bank1.Service.Infrastructure.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">

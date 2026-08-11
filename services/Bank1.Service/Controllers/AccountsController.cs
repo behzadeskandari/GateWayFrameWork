@@ -1,4 +1,7 @@
-using Bank1.Service.Application.Services;
+using Bank1.Service.Application.Features.Accounts.GetAccount;
+using Bank1.Service.Application.Features.Accounts.GetAccounts;
+using Bank1.Service.Application.Features.Accounts.GetBalance;
+using Bank1.Service.Middleware;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Bank1.Service.Controllers;
@@ -7,21 +10,27 @@ namespace Bank1.Service.Controllers;
 [Route("api/accounts")]
 public sealed class AccountsController : ControllerBase
 {
-    private readonly IAccountService _accountService;
+    private readonly IGetAccountsHandler _getAccountsHandler;
+    private readonly IGetAccountHandler _getAccountHandler;
+    private readonly IGetBalanceHandler _getBalanceHandler;
 
-    public AccountsController(IAccountService accountService) => _accountService = accountService;
+    public AccountsController(
+        IGetAccountsHandler getAccountsHandler,
+        IGetAccountHandler getAccountHandler,
+        IGetBalanceHandler getBalanceHandler)
+    {
+        _getAccountsHandler = getAccountsHandler;
+        _getAccountHandler = getAccountHandler;
+        _getBalanceHandler = getBalanceHandler;
+    }
 
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> List(CancellationToken cancellationToken)
     {
-        var accounts = await _accountService.ListAccountsAsync(cancellationToken);
-        return Ok(new
-        {
-            Service = "Bank1.Service",
-            CorrelationId = HttpContext.Items["CorrelationId"],
-            Data = accounts
-        });
+        var correlationId = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
+        var response = await _getAccountsHandler.HandleAsync(correlationId, cancellationToken);
+        return Ok(response);
     }
 
     [HttpGet("{id}")]
@@ -29,16 +38,17 @@ public sealed class AccountsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(string id, CancellationToken cancellationToken)
     {
-        var account = await _accountService.GetAccountAsync(id, cancellationToken);
+        var account = await _getAccountHandler.HandleAsync(id, cancellationToken);
         if (account is null)
         {
             return NotFound(new { Message = "Account not found.", Id = id });
         }
 
+        var correlationId = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
         return Ok(new
         {
             Service = "Bank1.Service",
-            CorrelationId = HttpContext.Items["CorrelationId"],
+            CorrelationId = correlationId,
             Data = account
         });
     }
@@ -48,16 +58,17 @@ public sealed class AccountsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetBalance(string id, CancellationToken cancellationToken)
     {
-        var balance = await _accountService.GetBalanceAsync(id, cancellationToken);
+        var balance = await _getBalanceHandler.HandleAsync(id, cancellationToken);
         if (balance is null)
         {
             return NotFound(new { Message = "Account not found.", Id = id });
         }
 
+        var correlationId = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
         return Ok(new
         {
             Service = "Bank1.Service",
-            CorrelationId = HttpContext.Items["CorrelationId"],
+            CorrelationId = correlationId,
             Data = balance
         });
     }

@@ -14,7 +14,12 @@ internal sealed class BankServiceTestHost<TEntryPoint> : IAsyncDisposable
     public BankServiceTestHost()
     {
         HostName = $"{typeof(TEntryPoint).Assembly.GetName().Name!.ToLowerInvariant()}.tests";
-        _factory = new WebApplicationFactory<TEntryPoint>();
+        var databaseId = Guid.NewGuid().ToString("N");
+        _factory = new WebApplicationFactory<TEntryPoint>().WithWebHostBuilder(builder =>
+        {
+            builder.UseSetting("Database:ConnectionString", $"Data Source=bank-test-{databaseId}.db");
+            builder.UseSetting("AuditDatabase:ConnectionString", $"Data Source=bank-audit-test-{databaseId}.db");
+        });
         Handler = _factory.Server.CreateHandler();
         BaseUrl = $"http://{HostName}/";
     }

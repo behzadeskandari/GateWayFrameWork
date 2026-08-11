@@ -6,6 +6,11 @@ ENV ASPNETCORE_URLS=http://+:8080
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 COPY ["services/Bank1.Service/Bank1.Service.csproj", "services/Bank1.Service/"]
+COPY ["services/Bank1.Service.Application/Bank1.Service.Application.csproj", "services/Bank1.Service.Application/"]
+COPY ["services/Bank1.Service.Infrastructure/Bank1.Service.Infrastructure.csproj", "services/Bank1.Service.Infrastructure/"]
+COPY ["services/Bank1.Service.Domain/Bank1.Service.Domain.csproj", "services/Bank1.Service.Domain/"]
+COPY ["services/Bank1.Service.Contracts/Bank1.Service.Contracts.csproj", "services/Bank1.Service.Contracts/"]
+COPY ["services/Shared/Banking.Service.Audit.Abstractions/Banking.Service.Audit.Abstractions.csproj", "services/Shared/Banking.Service.Audit.Abstractions/"]
 RUN dotnet restore "services/Bank1.Service/Bank1.Service.csproj"
 COPY . .
 WORKDIR "/src/services/Bank1.Service"

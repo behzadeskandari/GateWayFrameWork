@@ -16,7 +16,7 @@ A modular **banking API gateway** on **.NET 8** and **YARP** with a **plugin arc
 
 ---
 
-## Solution Structure (18 projects)
+## Solution Structure (27+ projects)
 
 | Project | Role |
 |---|---|
@@ -24,13 +24,16 @@ A modular **banking API gateway** on **.NET 8** and **YARP** with a **plugin arc
 | `Gateway.Framework.*` | Core framework modules (security, logging, YARP, plugins, …) |
 | `Gateway.Bank.Bank1` | Bank1 **plugin** — gateway routing/config only |
 | `Gateway.Bank.Bank2` | Bank2 **plugin** — gateway routing/config only |
-| `services/Bank1.Service` | Bank1 **service** — accounts/balance business logic (port **5101**) |
-| `services/Bank2.Service` | Bank2 **service** — payments/transfers business logic (port **5102**) |
-| `*.Service.Tests` | Unit + integration tests for each bank service |
-| `Gateway.Tests.Unit` | 18 unit tests |
-| `Gateway.Tests.Integration` | 21 integration tests (auth, plugins, gateway→bank E2E) |
+| `services/Bank1.Service` | Bank1 **API host** (port **5101**) |
+| `services/Bank1.Service.{Domain,Application,Contracts,Infrastructure}` | Bank1 Clean Architecture layers |
+| `services/Bank2.Service` | Bank2 **API host** (port **5102**) |
+| `services/Bank2.Service.{Domain,Application,Contracts,Infrastructure}` | Bank2 Clean Architecture layers |
+| `services/Shared/Banking.Service.Audit.Abstractions` | Shared audit contract (technical only) |
+| `*.Service.Tests` | Unit + integration + architecture tests for each bank service |
+| `Gateway.Tests.Unit` | Gateway unit tests |
+| `Gateway.Tests.Integration` | Gateway integration tests (auth, plugins, gateway→bank E2E) |
 
-See [docs/architecture.md](docs/architecture.md) and [docs/plugin-development.md](docs/plugin-development.md).
+See [docs/architecture.md](docs/architecture.md), [docs/bank-service-development.md](docs/bank-service-development.md), and [docs/plugin-development.md](docs/plugin-development.md).
 
 ---
 
@@ -134,7 +137,7 @@ dotnet run --project Gateway.Host/Gateway.Host.csproj
 | 9 | Downstream failure | Stop Bank1 service; gateway plugin health shows degraded; proxy returns 502 |
 | 10 | Plugin health | `GET http://localhost:5000/api/v1/health/status` lists BANK1/BANK2 |
 
-Automated coverage: `dotnet test GateWayFrameWork.sln` (**50 tests**).
+Automated coverage: `dotnet test GateWayFrameWork.sln` (**64 tests**).
 
 ---
 
@@ -149,6 +152,12 @@ docker compose up --build
 | gateway | http://localhost:5000 |
 | bank1-service | http://localhost:5101 |
 | bank2-service | http://localhost:5102 |
+| bank1-db (PostgreSQL) | localhost:5433 |
+| bank2-db (PostgreSQL) | localhost:5435 |
+| bank1-log-db | localhost:5434 |
+| bank2-log-db | localhost:5436 |
+
+Each bank service connects only to its own business and audit databases. Docker sets `Database:Provider=Npgsql` with internal service hostnames.
 
 Gateway environment variables wire plugins to internal service names (`http://bank1-service:8080/`).
 

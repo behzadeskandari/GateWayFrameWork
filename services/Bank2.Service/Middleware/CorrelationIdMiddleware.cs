@@ -3,6 +3,8 @@ namespace Bank2.Service.Middleware;
 public sealed class CorrelationIdMiddleware
 {
     public const string HeaderName = "X-Correlation-Id";
+    public const string CorrelationIdItemKey = "CorrelationId";
+
     private readonly RequestDelegate _next;
 
     public CorrelationIdMiddleware(RequestDelegate next) => _next = next;
@@ -15,7 +17,7 @@ public sealed class CorrelationIdMiddleware
             correlationId = Guid.NewGuid().ToString("N");
         }
 
-        context.Items["CorrelationId"] = correlationId;
+        context.Items[CorrelationIdItemKey] = correlationId;
         context.Response.OnStarting(() =>
         {
             context.Response.Headers[HeaderName] = correlationId;
@@ -29,6 +31,8 @@ public sealed class CorrelationIdMiddleware
 public sealed class IdempotencyMiddleware
 {
     public const string HeaderName = "Idempotency-Key";
+    public const string IdempotencyKeyItemKey = "IdempotencyKey";
+
     private readonly RequestDelegate _next;
 
     public IdempotencyMiddleware(RequestDelegate next) => _next = next;
@@ -37,7 +41,7 @@ public sealed class IdempotencyMiddleware
     {
         if (context.Request.Headers.TryGetValue(HeaderName, out var key) && !string.IsNullOrWhiteSpace(key))
         {
-            context.Items["IdempotencyKey"] = key.ToString();
+            context.Items[IdempotencyKeyItemKey] = key.ToString();
         }
 
         await _next(context);
